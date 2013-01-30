@@ -8,6 +8,17 @@
 
 #import <UIKit/UIKit.h>
 
-@interface MWViewController : UIViewController
+#import "PGMidi.h"
+
+@interface MWViewController : UIViewController <PGMidiDelegate, PGMidiSourceDelegate>
+{
+	//PGMidi *midi;
+}
+
+@property (nonatomic,assign) PGMidi *midi;
+@property (weak, nonatomic) IBOutlet UITextView *textView;
+
+- (IBAction) listAllInterfaces;
+- (IBAction)refresh:(id)sender;
 
 @end

@@ -8,14 +8,28 @@
 
 #import "MWAppDelegate.h"
 
+#import "PGMidi.h"
+#import "iOSVersionDetection.h"
+
 @implementation MWAppDelegate
+
+@synthesize viewController;
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions
 {
-    // Override point for customization after application launch.
+	
+	
+	IF_IOS_HAS_COREMIDI
+    (
+		// We only create a MidiInput object on iOS versions that support CoreMIDI
+		midi = [[PGMidi alloc] init];
+		[midi enableNetwork: YES];
+		((MWViewController *) self.window.rootViewController).midi = midi;
+	)
+	
     return YES;
 }
-							
+
 - (void)applicationWillResignActive:(UIApplication *)application
 {
 	// Sent when the application is about to move from active to inactive state. This can occur for certain types of temporary interruptions (such as an incoming phone call or SMS message) or when the user quits the application and it begins the transition to the background state.
