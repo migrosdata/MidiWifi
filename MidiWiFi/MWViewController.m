@@ -29,7 +29,8 @@
 {
     for (PGMidiSource *source in midi.sources)
     {
-        source.delegate = self;
+        //source.delegate = self;
+        [source addDelegate:self];
     }
 }
 
@@ -41,6 +42,20 @@ NSString *ToString(PGMidiConnection *connection)
 {
     return [NSString stringWithFormat:@"< PGMidiConnection: name=%@ isNetwork=%s >",
             connection.name, ToToString(connection.isNetworkSession)];
+}
+
+NSString *StringFromPacket(const MIDIPacket *packet)
+{
+    // Note - this is not an example of MIDI parsing. I'm just dumping
+    // some bytes for diagnostics.
+    // See comments in PGMidiSourceDelegate for an example of how to
+    // interpret the MIDIPacket structure.
+    return [NSString stringWithFormat:@"  %u bytes: [%02x,%02x,%02x]",
+            packet->length,
+            (packet->length > 0) ? packet->data[0] : 0,
+            (packet->length > 1) ? packet->data[1] : 0,
+            (packet->length > 2) ? packet->data[2] : 0
+            ];
 }
 
 - (void)viewDidLoad
@@ -100,7 +115,8 @@ NSString *ToString(PGMidiConnection *connection)
 
 - (void) midi:(PGMidi*)midi sourceAdded:(PGMidiSource *)source
 {
-	source.delegate = self;
+	//source.delegate = self;
+    [source addDelegate:self];
     //[self updateCountLabel];
     [self addString:[NSString stringWithFormat:@"Source added: %@", ToString(source)]];
 }
@@ -123,22 +139,47 @@ NSString *ToString(PGMidiConnection *connection)
     [self addString:[NSString stringWithFormat:@"Desintation removed: %@", ToString(destination)]];
 }
 
-- (void) midiSource:(PGMidiSource*)midi midiReceived:(const MIDIPacketList *)packetList
+- (void) midiSource:(PGMidiSource*)source midiReceived:(const MIDIPacketList *)packetList
 {
-    /*
-	[self performSelectorOnMainThread:@selector(addString:)
+    [self performSelectorOnMainThread:@selector(addString:)
                            withObject:@"MIDI received:"
                         waitUntilDone:NO];
 	
+    
+    UInt32 numPacket = packetList->numPackets;
+    UInt32 packetBufferSize = sizeof(UInt32) + numPacket * sizeof(NoteMidiPacket);
+    
+    MIDIPacketList *octavePacketList = malloc(packetBufferSize);
+    
+    MIDIPacket *octavePacket = MIDIPacketListInit(octavePacketList);
+    
     const MIDIPacket *packet = &packetList->packet[0];
+    
+    int statusByte;
+    int status;
+    Byte data[3];
     for (int i = 0; i < packetList->numPackets; ++i)
     {
-        [self performSelectorOnMainThread:@selector(addString:)
-                               withObject:StringFromPacket(packet)
-                            waitUntilDone:NO];
+        statusByte = packet->data[0];
+        status = statusByte >= 0xf0 ? statusByte : statusByte >> 4 << 4;
+        if ((status == 0x90 || status == 0x80) && packet->data[1] <= 115)
+        {
+            data[0] = packet->data[0];
+            data[1] = packet->data[1] + 12; //add an octave
+            data[2] = packet->data[2];
+            
+            octavePacket = MIDIPacketListAdd(octavePacketList,
+                                             packetBufferSize,
+                                             octavePacket,
+                                             packet->timeStamp,
+                                             3,
+                                             data);
+        }
         packet = MIDIPacketNext(packet);
     }
-	/**/
+    
+    [self.midi sendPacketList: packetList];
+    [self.midi sendPacketList: octavePacketList];
 }
 
 - (void)viewDidUnload {

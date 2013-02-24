@@ -23,7 +23,8 @@
     (
 		// We only create a MidiInput object on iOS versions that support CoreMIDI
 		midi = [[PGMidi alloc] init];
-		[midi enableNetwork: YES];
+		//[midi enableNetwork: YES];
+     midi.networkEnabled = YES;
 		((MWViewController *) self.window.rootViewController).midi = midi;
 	)
 	

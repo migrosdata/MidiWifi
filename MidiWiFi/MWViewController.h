@@ -9,6 +9,13 @@
 #import <UIKit/UIKit.h>
 
 #import "PGMidi.h"
+struct NoteMidiPacketStruct {
+    MIDITimeStamp   timeStamp;
+    UInt16          length;
+    Byte            data[3];
+};
+
+typedef struct NoteMidiPacketStruct NoteMidiPacket;
 
 @interface MWViewController : UIViewController <PGMidiDelegate, PGMidiSourceDelegate>
 {
